@@ -32,27 +32,45 @@ void lcd_init(int fd);                              // LCD를 초기화하는 �
 void ClearLcd(int fd);                              // lcd 초기화
 void lcdStart(int line, int fd, char* string);      // 지정된 LCD 행에 문자열을 출력
 
-
-int main(){
-
-    int fd;
-
+void *lcdThread(void *arg) {
+    
     if (wiringPiSetup() == -1) {
+        fprintf(stderr, "WiringPi 초기화 실패\n");
         exit(1);
     }
     
-    fd = wiringPiI2CSetup(I2C_ADDR);
-    if (fd == -1){
+    int fd = wiringPiI2CSetup(I2C_ADDR);
+    if (fd == -1) {
         fprintf(stderr, "I2C 초기화 실패\n");
         exit(1);
     }
 
-    lcd_init(fd); // init LCD
-    usleep(1000*1000);
+    char *string = (char*) arg;
+
+ 
+
+    lcd_init(fd);
+    usleep(1000 * 1000);
 
     ClearLcd(fd);
-    lcdStart(LINE1, fd, "Hello"); 
+    lcdStart(LINE1, fd, string);
+
     printf("lcd 출력 완료\n");
+
+    return NULL;
+}
+
+int main(){
+    int fd;
+
+    pthread_t lcdThreadId;
+
+    if (pthread_create(&lcdThreadId, NULL, lcdThread, "hello") != 0) {
+        fprintf(stderr, "LCD 쓰레드 생성 실패\n");
+        return 1;
+    }
+
+    pthread_join(lcdThreadId, NULL);    
 
     return 0;
 }
@@ -70,11 +88,11 @@ void lcd_byte(int bits, int mode, int fd) {
 
     // High bits
     wiringPiI2CReadReg8(fd, bits_high);
-    lcd_toggle_enable(bits_high,fd);
+    lcd_toggle_enable(bits_high, fd);
 
     // Low bits
     wiringPiI2CReadReg8(fd, bits_low);
-    lcd_toggle_enable(bits_low,fd);
+    lcd_toggle_enable(bits_low, fd);
 }
 
 void typeln(const char* s,int fd) {
