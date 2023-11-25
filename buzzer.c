@@ -9,7 +9,6 @@ int repeat = 60 ;
 
 void *buzzerThread(void *arg)
 {
-   
     if (wiringPiSetup() == -1)
     {
         printf("WiringPi 초기화 실패\n");
@@ -43,7 +42,6 @@ int main()
         fprintf(stderr, "부저 쓰레드 생성 실패\n");
         return 1;
     }
-
 
     // pthread_cancel(buzzerThreadId);
     pthread_join(buzzerThreadId, NULL);
