@@ -15,7 +15,6 @@
 #include<sys/socket.h>
 
 #include"GPIO.h"
-
 #include"SPI.h"
 
 #define BUFFER_MAX 3
