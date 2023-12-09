@@ -9,28 +9,9 @@
 #include <pthread.h>
 #include <wiringPiI2C.h>
 #include <wiringPi.h>
+#include "LCD.h"
 
 
-#define I2C_ADDR   0x27     // I2C device address
-#define LCD_CHR  1          // Sending data mode
-#define LCD_CMD  0          // Sending command mode
-#define LINE1  0x80         
-#define LINE2  0xC0         
-
-#define LCD_BACKLIGHT   0x08    // on -> 0x08    off -> 0x00
-#define ENABLE  0b00000100      // Enable bit
-
-void lcd_byte(int bits, int mode, int fd);          // I2C를 통해 데이터를 LCD에 전송
-void typeln(const char* s, int fd);                 // 문자열을 한 글자씩 lcd_byte 함수를 통해 LCD에 출력
-void typeChar(char val, int fd);                    // 한 문자를 lcd_byte 함수를 통해 LCD에 출력
-void typeInt(int i, int fd);                        // 정수를 문자열로 변환해 typeln 함수를 호출하여 LCD에 출력
-void typeFloat(float myFloat, int fd);              // 소수를 문자열로 변환해 typeln 함수를 호출하여 LCD에 출력
-
-void lcd_toggle_enable(int bits, int fd);           // I2C 통신을 통해 LCD의 Enable 핀을 토글
-void lcdLoc(int line, int fd);                      // LCD 커서의 위치 설정
-void lcd_init(int fd);                              // LCD를 초기화하는 몇 가지 초기화 명령을 전송
-void ClearLcd(int fd);                              // lcd 초기화
-void lcdStart(int line, int fd, char* string);      // 지정된 LCD 행에 문자열을 출력
 
 void *lcdThread(void *arg) {
     
@@ -47,34 +28,15 @@ void *lcdThread(void *arg) {
 
     char *string = (char*) arg;
 
- 
-
     lcd_init(fd);
-    usleep(1000 * 1000);
-
     ClearLcd(fd);
+    printf("출력할 문자열 : %s\n", string);
     lcdStart(LINE1, fd, string);
 
     printf("lcd 출력 완료\n");
 
     return NULL;
 }
-
-int main(){
-    int fd;
-
-    pthread_t lcdThreadId;
-
-    if (pthread_create(&lcdThreadId, NULL, lcdThread, "hello") != 0) {
-        fprintf(stderr, "LCD 쓰레드 생성 실패\n");
-        return 1;
-    }
-
-    pthread_join(lcdThreadId, NULL);    
-
-    return 0;
-}
-
 
 void lcd_byte(int bits, int mode, int fd) {     
     // bits = 전송할 데이터
@@ -121,7 +83,6 @@ void typeFloat(float myFloat,int fd) {
     typeln(buffer,fd);
 }
 
-
 void lcd_toggle_enable(int bits, int fd) {
     // bits = Enable 핀을 토글하기 위한 비트
     delayMicroseconds(500);
@@ -153,6 +114,20 @@ void ClearLcd(int fd) {
 void lcdStart(int line, int fd, char* string) {
     // line = LCD의 행 번호
     // string = 출력할 문자열
-    lcdLoc(line,fd);
-    typeln(string,fd);
+    lcdLoc(line, fd);
+    typeln(string, fd);
 }
+
+
+// int main()
+// {
+//     pthread_t lcdThreadId;
+
+//     if (pthread_create(&lcdThreadId, NULL, lcdThread, "HII~!") != 0)
+//     {
+//         fprintf(stderr, "LCD 쓰레드 생성 실패\n");
+//     }
+
+//     pthread_join(lcdThreadId, NULL);
+//     return 0;
+// }
