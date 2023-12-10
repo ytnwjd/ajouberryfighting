@@ -20,9 +20,9 @@
 ### 컴파일 방법
 ```
 gcc -o server Server.c GPIO.c SPI.c -lpthread 
-gcc -o smoking Smoking.c GPIO.c SPI.c -lptread 
-gcc -o pressure Pressure.c GPIO.c SPI.c -lptread 
-gcc -o notice Notice.c GPIO.c PWM.c LCD.c -lptread -lwiringPi
+gcc -o smoking Smoking.c GPIO.c SPI.c -lpthread 
+gcc -o pressure Pressure.c GPIO.c SPI.c -lpthread 
+gcc -o notice Notice.c GPIO.c PWM.c LCD.c -lpthread -lwiringPi
 ```
 <br>
 
