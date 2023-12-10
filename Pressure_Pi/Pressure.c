@@ -23,76 +23,73 @@
 char button_state[1024];
 int pressure_state;
 
-int gid;
+pthread_t gid;
+int sock;
 
-
-#define GPS_SERIAL_PORT "/dev/serial0"  // Raspberry Pi의 시리얼 포트
+#define GPS_SERIAL_PORT "/dev/serial0"  // Raspberry Pi의 GPS 사용 시리얼 포트
 #define GPS_BAUD_RATE 9600  // GPS 모듈의 통신 속도
-
-// void initializeGPS() {
-//     serialPrintf(serialOpen(GPS_SERIAL_PORT, GPS_BAUD_RATE), "$PMTK251,9600*17\r\n");
-//     delay(1000);
-//     serialPrintf(serialOpen(GPS_SERIAL_PORT, GPS_BAUD_RATE), "$PMTK220,100*2F\r\n");
-//     delay(1000);
-// }
-
-// void readGPSData(char *buffer, int bufferSize) {
-//     int serialPort = serialOpen(GPS_SERIAL_PORT, GPS_BAUD_RATE);
-//     int bytesRead = serialDataAvail(serialPort);
-
-//     if (bytesRead > 0) {
-//         bytesRead = (bytesRead > bufferSize) ? bufferSize : bytesRead;
-//         serialRead(serialPort, buffer, bytesRead);
-//         buffer[bytesRead] = '\0';
-//     }
-// }
-
-// void *GPS_thread(void *arg) {
-// 	if (wiringPiSetup() == -1) {
-//         fprintf(stderr, "WiringPi initialization failed.\n");
-//     }
-
-//     initializeGPS();
-// 	int state = 3;
-//     while (state--) {
-//         char buffer[256];
-//         readGPSData(buffer, sizeof(buffer));
-
-//         if (strlen(buffer) > 0) {
-//             // 예제에서는 GPGGA 메시지에서 좌표 정보를 추출합니다.
-//             char *token = strtok(buffer, ",");
-//             while (token != NULL) {
-//                 if (strcmp(token, "$GPGGA") == 0) {
-//                     // 좌표 정보가 있는 인덱스로 이동
-//                     int i;
-//                     for (i = 0; i < 6; ++i) {
-//                         token = strtok(NULL, ",");
-//                     }
-
-//                     // 좌표 정보 출력
-//                     printf("Latitude: %s, Longitude: %s\n", token, strtok(NULL, ","));
-//                     break;
-//                 }
-
-//                 token = strtok(NULL, ",");
-//             }
-//         }
-
-//         delay(1000);  // 1초마다 GPS 데이터를 확인
-//     }
-
-// }
-
-
 
 /******************************************************
  * error 출력
  *******************************************************/
-void error_print(char *message)
+void error_handling(char *message)
 {
 	fputs(message, stderr);
 	fputc('\n', stderr);
 	exit(1);
+}
+
+void readGPSData(int serialPort, char *buffer, int bufferSize) {
+    int bytesRead = 0;
+    char currentChar;
+
+    // 줄바꿈 문자가 나올 때까지 문자를 읽음
+    while (currentChar != '\n' && bytesRead < bufferSize - 1) {
+        currentChar = serialGetchar(serialPort);
+
+        // 읽은 문자를 버퍼에 추가
+        if (currentChar != '\n') {
+            buffer[bytesRead] = currentChar;
+            bytesRead++;
+        }
+    }
+
+    buffer[bytesRead] = '\0';
+}
+
+
+void *GPS_thread(void *arg) {
+	if (wiringPiSetup() == -1) {
+        error_handling("WiringPi initialization failed.\n");
+		exit(1);
+    }
+
+	printf("GPS thread 입장\n");
+
+	int serialPort = serialOpen(GPS_SERIAL_PORT, GPS_BAUD_RATE);
+    if (serialPort == -1) {
+        error_handling("Failed to open serial port.\n");
+		exit(1);
+    }
+
+	// system("cat /dev/serial0");
+
+	int state = 7;
+    while (state--) {
+        char buffer[1024];
+		readGPSData(serialPort, buffer, sizeof(buffer));
+
+        if (strlen(buffer) > 0) {
+
+			printf("Received line: %s\n", buffer);
+			write(sock, buffer, strlen(buffer));
+        }
+
+        usleep(1000 * 5000);  
+    }
+
+
+
 }
 
 
@@ -102,14 +99,13 @@ void error_print(char *message)
 void *socket_thread(void *data)
 {
 	char **argv = (char **)data;
-	int sock;
 	struct sockaddr_in serv_addr;
 	char msg[1024];
 
 	// socket 생성
 	sock = socket(PF_INET, SOCK_STREAM, 0);
 	if (sock == -1)
-		error_print("socket() error");
+		error_handling("socket() error");
 
 	// port, ip 할당
 	memset(&serv_addr, 0, sizeof(serv_addr));
@@ -119,7 +115,7 @@ void *socket_thread(void *data)
 
 	// socket과 연결
 	if (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) == -1)
-		error_print("connect() error");
+		error_handling("connect() error");
 
 	printf("Connection established\n");
 
@@ -131,13 +127,13 @@ void *socket_thread(void *data)
 	{
         // button이 눌리면 눌렸다고 socekt 통신
         if(strcmp(button_state, "ON") == 0){
-			// pthread_create(&gid, NULL, GPS_thread, NULL);
-			// pthread_join(gid, NULL);
             printf("send button state to server\n");
 			
 			// 눌린 경우 20 서버로 전송
 			strcpy(msg, "20");
             write(sock, msg, strlen(msg));
+			pthread_create(&gid, NULL, GPS_thread, NULL);
+			pthread_join(gid, NULL);
 			usleep(1000000);
         }
         // pressure state 변경 시 시간 측정
@@ -201,6 +197,7 @@ void *button_thread(void *data)
         if(state == LOW){
             strcpy(button_state, "ON");
             printf("BUTTON PRESSED\n");
+			pthread_create(&gid, NULL, GPS_thread, NULL);
         }
         else 
             strcpy(button_state, "OFF");
