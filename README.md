@@ -1,5 +1,5 @@
 # SystemProgramming project
-2023-2 시스템 프로그래밍 ajouberryfighting팀 repository<br>
+2023-2 시스템 프로그래밍 Ajouberryfighting팀 repository<br>
 
 ---
 ### 팀원
@@ -10,11 +10,11 @@
 <br>
 
 ### 프로젝트 설명
-| 프로젝트 이름 : 스마트 도시 골목 대장 <br>
+| **프로젝트 이름** : 스마트 도시 골목 대장 <br>
   
-| 프로젝트 목표 : 골목길에서 자주 발생하는 상황들에 대하여 종합적인 대처 수행 <br>
+| **프로젝트 목표** : 골목길에서 자주 발생하는 상황들에 대하여 종합적인 대처 수행 <br>
 
-![description](./최종%20발표_4.png) <br>
+![analyze](./analyze.png) <br>
 <br>
 
 ### 컴파일 방법
